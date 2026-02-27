@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>PingMe Settings</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <header style="margin-bottom: 20px;">
+        <a href="/" style="color: var(--text-dim); text-decoration: none;">← Back to Dashboard</a>
+        <h1>Settings</h1>
+    </header>
+
+    <div class="card" style="max-width: 600px; margin: 0 auto;">
+        <form id="settings-form">
+            <div style="margin-bottom: 20px;">
+                <h3>Sleep Window</h3>
+                <div style="display: flex; gap: 10px;">
+                    <div>
+                        <label>Start</label>
+                        <input type="time" name="sleepStart" value="{{ settings.sleepStart }}">
+                    </div>
+                    <div>
+                        <label>End</label>
+                        <input type="time" name="sleepEnd" value="{{ settings.sleepEnd }}">
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h3>Preferences</h3>
+                <label>Timezone</label>
+                <select name="timezone">
+                    <option value="Asia/Kolkata">Asia/Kolkata</option>
+                    <option value="UTC">UTC</option>
+                    <option value="US/Eastern">US/Eastern</option>
+                    <option value="US/Pacific">US/Pacific</option>
+                    <option value="Europe/London">Europe/London</option>
+                </select>
+
+                <label>Ping Interval (minutes)</label>
+                <input type="number" name="intervalMinutes" value="{{ settings.intervalMinutes }}">
+
+                <label>Summary Delivery Time</label>
+                <input type="time" name="summaryTime" value="{{ settings.summaryTime }}">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h3>Credentials</h3>
+                <label>Email Address</label>
+                <input type="email" name="email" value="{{ settings.email }}"
+                    style="width: 100%; background: #0d1117; border: 1px solid #30363d; color: var(--text-color); padding: 8px; border-radius: 4px;">
+
+                <label>Telegram Chat ID</label>
+                <input type="text" name="telegramChatId" value="{{ settings.telegramChatId }}">
+            </div>
+
+            <button type="submit" style="width: 100%;">Save Settings</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('settings-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.from_timestamp(formData.entries()); // Fixed below
+            const update = {};
+            formData.forEach((value, key) => { update[key] = value });
+
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(update)
+            });
+            alert('Settings saved!');
+        };
+    </script>
+</body>
+
+</html>

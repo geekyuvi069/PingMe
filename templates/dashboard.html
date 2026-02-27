@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PingMe Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>PingMe Dashboard — <span id="current-date">{{ summary.date }}</span></h1>
+        <a href="/settings" style="color: var(--text-dim); text-decoration: none;">⚙️ Settings</a>
+    </header>
+
+    <div class="container">
+        <!-- Timeline -->
+        <div class="card">
+            <h2>⏱️ Timeline</h2>
+            <ul id="log-list">
+                {% for log in summary.logs %}
+                <li>
+                    <span class="log-time">{{ log.timestamp }}</span>
+                    <span>{{ log.response or "[untracked/skipped]" }}</span>
+                    <span class="badge {{ log.category }}">{{ log.category }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Agenda -->
+        <div class="card">
+            <h2>📋 Agenda</h2>
+            <ul id="agenda-list">
+                {% for item in summary.agenda %}
+                <li class="agenda-item {{ 'completed' if item.completed else '' }}">
+                    <input type="checkbox" {{ 'checked' if item.completed else '' }} 
+                           onchange="toggleAgenda('{{ item._id }}', this.checked)">
+                    <span>{{ item.content }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            <div style="margin-top: 20px;">
+                <input type="text" id="new-agenda-item" placeholder="Add new task...">
+                <button onclick="addAgenda()">Add Task</button>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="card">
+            <h2>🗒️ Notes</h2>
+            <ul id="note-list">
+                {% for note in summary.notes %}
+                <li>
+                    <span class="log-time">{{ note.timestamp }}</span>
+                    <div>{{ note.content }}</div>
+                </li>
+                {% endfor %}
+            </ul>
+            <div style="margin-top: 20px;">
+                <input type="text" id="new-note" placeholder="Write a note...">
+                <button onclick="addNote()">Save Note</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function toggleAgenda(id, completed) {
+            await fetch(`/api/agenda/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ completed })
+            });
+            window.location.reload();
+        }
+
+        async function addAgenda() {
+            const content = document.getElementById('new-agenda-item').value;
+            if (!content) return;
+            await fetch('/api/agenda', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, source: 'dashboard' })
+            });
+            window.location.reload();
+        }
+
+        async function addNote() {
+            const content = document.getElementById('new-note').value;
+            if (!content) return;
+            await fetch('/api/notes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, source: 'dashboard' })
+            });
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>

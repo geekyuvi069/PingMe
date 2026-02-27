@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div id="countdown">15:00</div>
+            <button id="settings-btn" title="Settings">⚙</button>
+        </header>
+
+        <main id="main-panel">
+            <div class="input-group">
+                <input type="text" id="log-input" placeholder="what are you doing right now?" autofocus>
+            </div>
+
+            <div class="button-grid">
+                <button id="log-btn" class="primary">Log It</button>
+                <button id="skip-btn">Skip</button>
+                <button id="note-btn">Note</button>
+                <button id="agenda-btn">Agenda</button>
+            </div>
+
+            <div id="status-msg"></div>
+
+            <section id="agenda-panel" class="hidden">
+                <h3>📋 Today's Agenda</h3>
+                <ul id="agenda-list"></ul>
+                <div class="add-agenda">
+                    <input type="text" id="new-agenda-input" placeholder="Add task...">
+                    <button id="add-agenda-btn">+</button>
+                </div>
+            </section>
+        </main>
+
+        <section id="settings-panel" class="hidden">
+            <h3>⚙ Settings</h3>
+            <div class="settings-group">
+                <label>API URL</label>
+                <input type="text" id="api-url-input" placeholder="http://localhost:8000">
+            </div>
+            <div class="settings-group">
+                <label>Interval (mins)</label>
+                <input type="number" id="interval-input" min="5" max="60">
+            </div>
+            <div class="settings-group row">
+                <div>
+                    <label>Sleep From</label>
+                    <input type="time" id="sleep-start-input">
+                </div>
+                <div>
+                    <label>Sleep Until</label>
+                    <input type="time" id="sleep-end-input">
+                </div>
+            </div>
+            <div class="settings-group toggle-row">
+                <label>Manual Sleep Mode</label>
+                <label class="switch">
+                    <input type="checkbox" id="manual-sleep-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="button-grid">
+                <button id="save-settings-btn" class="primary">Save</button>
+                <button id="close-settings-btn">Close</button>
+            </div>
+        </section>
+    </div>
+    <script src="popup.js"></script>
+</body>
+
+</html>

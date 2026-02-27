@@ -1,0 +1,244 @@
+:root {
+    --bg-color: #0a0a0a;
+    --card-bg: #1a1a1a;
+    --text-color: #ffffff;
+    --accent-color: #4CAF50;
+    --border-color: #333333;
+    --muted-text: #888888;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    width: 320px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.container {
+    padding: 16px;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+#countdown {
+    font-size: 32px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+button#settings-btn {
+    background: none;
+    border: none;
+    color: var(--muted-text);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.input-group {
+    margin-bottom: 16px;
+}
+
+input[type="text"],
+input[type="number"] {
+    width: 100%;
+    background-color: #111;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 8px 12px;
+    font-family: inherit;
+    outline: none;
+}
+
+input[type="text"]:focus {
+    border-color: var(--accent-color);
+}
+
+.button-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+button {
+    background-color: #222;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+
+button:hover {
+    background-color: #333;
+}
+
+button.primary {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+#status-msg {
+    text-align: center;
+    font-size: 12px;
+    height: 18px;
+    margin-bottom: 12px;
+    color: var(--accent-color);
+}
+
+section {
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+    margin-top: 16px;
+}
+
+h3 {
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: var(--muted-text);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Agenda Styles */
+#agenda-list {
+    list-style: none;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.agenda-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.agenda-item input[type="checkbox"] {
+    margin-right: 8px;
+    margin-top: 2px;
+}
+
+.add-agenda {
+    display: flex;
+    gap: 4px;
+}
+
+.add-agenda input {
+    flex: 1;
+}
+
+.add-agenda button {
+    padding: 0 12px;
+}
+
+/* Settings Styles */
+.settings-group {
+    margin-bottom: 12px;
+}
+
+.settings-group label {
+    display: block;
+    font-size: 11px;
+    color: var(--muted-text);
+    margin-bottom: 4px;
+}
+
+.settings-group.toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+}
+
+/* Switch styling */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #333;
+    transition: .4s;
+    border-radius: 20px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: var(--accent-color);
+}
+
+input:checked+.slider:before {
+    transform: translateX(20px);
+}
+
+.settings-group.row {
+    display: flex;
+    gap: 8px;
+}
+
+.settings-group.row>div {
+    flex: 1;
+}
+
+input[type="time"] {
+    width: 100%;
+    background-color: #111;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 6px 8px;
+    font-family: inherit;
+    outline: none;
+}
+
+#countdown.paused {
+    color: var(--muted-text);
+    letter-spacing: 1px;
+    font-style: italic;
+    opacity: 0.9;
+    text-transform: none;
+    line-height: 1.2;
+}

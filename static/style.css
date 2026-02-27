@@ -1,0 +1,120 @@
+:root {
+    --bg-color: #0d1117;
+    --card-bg: #161b22;
+    --text-color: #c9d1d9;
+    --text-dim: #8b949e;
+    --primary: #58a6ff;
+    --success: #3fb950;
+    --warning: #d29922;
+    --danger: #f85149;
+    --deep-work: #3fb950;
+    --break: #1f6feb;
+    --admin: #a371f7;
+    --meetings: #d29922;
+    --distracted: #f85149;
+    --untracked: #484f58;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+h1, h2, h3 {
+    color: var(--primary);
+    border-bottom: 1px solid #30363d;
+    padding-bottom: 8px;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.card {
+    background: var(--card-bg);
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 20px;
+}
+
+.badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.badge.deep_work { background-color: var(--deep-work); color: white; }
+.badge.break { background-color: var(--break); color: white; }
+.badge.admin { background-color: var(--admin); color: white; }
+.badge.meetings { background-color: var(--meetings); color: white; }
+.badge.distracted { background-color: var(--distracted); color: white; }
+.badge.untracked { background-color: var(--untracked); color: white; }
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+li {
+    margin-bottom: 10px;
+    border-bottom: 1px solid #21262d;
+    padding-bottom: 8px;
+}
+
+input[type="text"], input[type="time"], input[type="number"], select {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    color: var(--text-color);
+    padding: 8px;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+
+button {
+    background-color: #238636;
+    color: white;
+    border: 1px solid rgba(240,246,252,0.1);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+button:hover {
+    background-color: #2ea043;
+}
+
+.agenda-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.agenda-item.completed span {
+    text-decoration: line-through;
+    color: var(--text-dim);
+}
+
+.log-time {
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-right: 10px;
+}
+
+@media (max-width: 1000px) {
+    .container {
+        grid-template-columns: 1fr;
+    }
+}

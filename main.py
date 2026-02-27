@@ -29,6 +29,10 @@ app.include_router(agenda.router)
 app.include_router(notes.router)
 app.include_router(summary.router)
 
+@app.post("/test-post")
+async def test_post():
+    return {"status": "ok"}
+
 @app.get("/")
 async def root(request: Request):
     from routers.summary import get_summary
