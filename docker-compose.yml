@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     environment:
       - RUNNING_IN_DOCKER=true
-      - GEMINI_API_KEY=AIzaSyDn3MkOUmr3gtfDDc1Tz7ZcXsgPQLZR9IA
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
 
   bot:
     build: .
@@ -21,4 +21,4 @@ services:
       - api
     environment:
       - RUNNING_IN_DOCKER=true
-      - GEMINI_API_KEY=AIzaSyDn3MkOUmr3gtfDDc1T7ZcXsgPQLZR9IA
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
