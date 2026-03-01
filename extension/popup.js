@@ -62,12 +62,16 @@ document.getElementById('save-settings-btn').onclick = saveSettings;
 
 function getMotivationalLine() {
     const lines = [
-        "Rest and Refocus",
-        "Recharge Your Mind",
-        "Peace of Mind",
-        "Stay Grounded",
-        "Breathe and Relax",
-        "One Step Ahead"
+        "धैर्यं सर्वत्र साधनम्",
+        "कर्मण्येव अधिकारः",
+        "सत्यं वद",
+        "उत्तिष्ठ जाग्रत",
+        "न भयम् किञ्चित्",
+        "स्वयं भूत्वा जीवा",
+        "विजयी भव",
+        "श्रम एव जयः",
+        "चित्तं शुद्धयेत्",
+        "यत्नेन सिद्धिः"
     ];
     return lines[Math.floor(Date.now() / 3600000) % lines.length]; // Change every hour
 }
@@ -206,4 +210,35 @@ function saveSettings() {
             closeSettings();
         });
     }
+}
+
+// Audio Player Logic
+const audioFiles = [
+    "audio/quote1.mp3",
+    "audio/quote2.mp3",
+    "audio/quote3.mp3",
+    "audio/quote4.mp3",
+    "audio/quote5.mp3",
+    // add more here
+];
+
+let currentAudio = null;
+const audioBtn = document.getElementById('audio-btn');
+
+if (audioBtn) {
+    audioBtn.onclick = () => {
+        if (currentAudio && !currentAudio.paused) {
+            currentAudio.pause();
+            audioBtn.textContent = '▶';
+        } else {
+            if (currentAudio) currentAudio.pause();
+            currentAudio = new Audio(audioFiles[Math.floor(Math.random() * audioFiles.length)]);
+            currentAudio.play();
+            audioBtn.textContent = '⏸';
+
+            currentAudio.onended = () => {
+                audioBtn.textContent = '▶';
+            };
+        }
+    };
 }

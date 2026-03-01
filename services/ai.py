@@ -12,7 +12,12 @@ async def generate_ai_summary(logs: list, agenda: list, notes: list, stats: dict
     Returns a short HTML-safe string to embed in the email.
     """
 
-    models_to_try = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"]
+    models_to_try = [
+        "gemini-2.0-flash-lite",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro"
+    ]
     last_error = None
 
     # Build a clean readable version of the day for the prompt

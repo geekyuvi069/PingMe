@@ -10,8 +10,12 @@
     <div class="container">
         <header>
             <div id="countdown">15:00</div>
-            <button id="settings-btn" title="Settings">⚙</button>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button id="audio-btn" title="Play/Pause">▶</button>
+                <button id="settings-btn" title="Settings">⚙</button>
+            </div>
         </header>
+        <audio id="my-audio" src="audio/quote.mp3"></audio>
 
         <main id="main-panel">
             <div class="input-group">

@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from routers import settings, ping, agenda, notes, summary
+from routers import settings, ping, agenda, notes, summary, weekly
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,6 +28,7 @@ app.include_router(ping.router)
 app.include_router(agenda.router)
 app.include_router(notes.router)
 app.include_router(summary.router)
+app.include_router(weekly.router)  
 
 @app.post("/test-post")
 async def test_post():
