@@ -37,8 +37,7 @@ header {
     letter-spacing: 2px;
 }
 
-button#settings-btn,
-button#audio-btn {
+button#settings-btn {
     background: none;
     border: none;
     color: var(--muted-text);
@@ -65,11 +64,26 @@ input[type="text"]:focus {
     border-color: var(--accent-color);
 }
 
+/* 5-button grid */
 .button-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     margin-bottom: 16px;
+}
+
+.button-grid button:nth-child(1),
+.button-grid button:nth-child(2) {
+    grid-column: span 1;
+}
+
+/* Make last row of 2 buttons centred */
+.button-grid button:nth-child(4) {
+    grid-column: 1 / 2;
+}
+
+.button-grid button:nth-child(5) {
+    grid-column: 2 / 3;
 }
 
 button {
@@ -92,6 +106,12 @@ button.primary {
     color: var(--accent-color);
 }
 
+button.active-panel {
+    background-color: #2a2a2a;
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
 #status-msg {
     text-align: center;
     font-size: 12px;
@@ -103,7 +123,7 @@ button.primary {
 section {
     border-top: 1px solid var(--border-color);
     padding-top: 16px;
-    margin-top: 16px;
+    margin-top: 4px;
 }
 
 h3 {
@@ -118,7 +138,12 @@ h3 {
     display: none;
 }
 
-/* Agenda Styles */
+.muted {
+    color: var(--muted-text);
+    font-size: 12px;
+}
+
+/* ── Agenda ── */
 #agenda-list {
     list-style: none;
     max-height: 200px;
@@ -151,7 +176,65 @@ h3 {
     padding: 0 12px;
 }
 
-/* Settings Styles */
+/* ── Notes Panel ── */
+#notes-list {
+    list-style: none;
+    max-height: 220px;
+    overflow-y: auto;
+    margin-bottom: 8px;
+}
+
+.note-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid #1e1e1e;
+    font-size: 12px;
+}
+
+.note-item:last-child {
+    border-bottom: none;
+}
+
+.note-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.note-time {
+    color: var(--muted-text);
+    font-size: 11px;
+}
+
+.note-text {
+    color: var(--text-color);
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+.dismiss-btn {
+    background: none;
+    border: none;
+    color: var(--muted-text);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 2px 4px;
+    flex-shrink: 0;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.dismiss-btn:hover {
+    color: #f85149;
+    background: none;
+}
+
+/* ── Settings ── */
 .settings-group {
     margin-bottom: 12px;
 }
@@ -170,7 +253,6 @@ h3 {
     margin-top: 12px;
 }
 
-/* Switch styling */
 .switch {
     position: relative;
     display: inline-block;
@@ -237,9 +319,9 @@ input[type="time"] {
 
 #countdown.paused {
     color: var(--muted-text);
-    letter-spacing: 0px;
+    letter-spacing: 1px;
     font-style: italic;
     opacity: 0.9;
     text-transform: none;
-    line-height: 1.4;
+    line-height: 1.2;
 }
