@@ -4,6 +4,4 @@ motor
 python-dotenv
 httpx
 jinja2
-python-telegram-bot
 pytz
-google-generativeai

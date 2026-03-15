@@ -11,6 +11,8 @@ const statusMsg = document.getElementById('status-msg');
 const agendaPanel = document.getElementById('agenda-panel');
 const agendaList = document.getElementById('agenda-list');
 const newAgendaInput = document.getElementById('new-agenda-input');
+const notesPanel = document.getElementById('notes-panel');
+const notesList = document.getElementById('notes-list');
 const settingsPanel = document.getElementById('settings-panel');
 const mainPanel = document.getElementById('main-panel');
 
@@ -53,8 +55,8 @@ async function updateTimerDisplay() {
 // Button Listeners
 document.getElementById('log-btn').onclick = () => submitLog({ response: logInput.value });
 document.getElementById('skip-btn').onclick = () => submitLog({ skipped: true });
-document.getElementById('note-btn').onclick = submitNote;
-document.getElementById('agenda-btn').onclick = toggleAgenda;
+document.getElementById('note-btn').onclick = () => togglePanel('notes');
+document.getElementById('agenda-btn').onclick = () => togglePanel('agenda');
 document.getElementById('add-agenda-btn').onclick = addAgendaItem;
 document.getElementById('settings-btn').onclick = openSettings;
 document.getElementById('close-settings-btn').onclick = closeSettings;
@@ -95,7 +97,7 @@ async function submitLog(payload) {
     }
 }
 
-async function submitNote() {
+async function handleNoteSubmit() {
     const content = logInput.value.trim();
     if (!content) return;
     try {
@@ -107,6 +109,7 @@ async function submitNote() {
         if (resp.ok) {
             showStatus('Note saved ✓');
             logInput.value = '';
+            if (!notesPanel.classList.contains('hidden')) fetchNotes();
         }
     } catch (e) {
         showStatus('Failed to save note');
@@ -118,12 +121,37 @@ function showStatus(msg) {
     setTimeout(() => { statusMsg.textContent = ''; }, 3000);
 }
 
-// Agenda Logic
-function toggleAgenda() {
-    const isHidden = agendaPanel.classList.toggle('hidden');
-    if (!isHidden) fetchAgenda();
+// Panel Toggling
+function togglePanel(type) {
+    if (type === 'agenda') {
+        const isHidden = agendaPanel.classList.toggle('hidden');
+        document.getElementById('agenda-btn').classList.toggle('active-panel', !isHidden);
+
+        // Hide Notes if showing Agenda
+        if (!isHidden) {
+            notesPanel.classList.add('hidden');
+            document.getElementById('note-btn').classList.remove('active-panel');
+            fetchAgenda();
+        }
+    } else if (type === 'notes') {
+        // If the input is not empty, handle as submission
+        if (logInput.value.trim()) {
+            handleNoteSubmit();
+            return;
+        }
+        const isHidden = notesPanel.classList.toggle('hidden');
+        document.getElementById('note-btn').classList.toggle('active-panel', !isHidden);
+
+        // Hide Agenda if showing Notes
+        if (!isHidden) {
+            agendaPanel.classList.add('hidden');
+            document.getElementById('agenda-btn').classList.remove('active-panel');
+            fetchNotes();
+        }
+    }
 }
 
+// Agenda Logic
 async function fetchAgenda() {
     try {
         const resp = await fetch(`${API_URL}/api/agenda/`);
@@ -132,6 +160,37 @@ async function fetchAgenda() {
     } catch (e) {
         agendaList.innerHTML = '<li>Error loading agenda</li>';
     }
+}
+
+async function fetchNotes() {
+    try {
+        const resp = await fetch(`${API_URL}/api/notes/`);
+        const items = await resp.json();
+        renderNotes(items);
+    } catch (e) {
+        notesList.innerHTML = '<li>Error loading notes</li>';
+    }
+}
+
+function renderNotes(items) {
+    notesList.innerHTML = '';
+    // API returns newest first usually, but let's take last 10
+    const recent = items.slice(0, 10);
+    recent.forEach(note => {
+        const li = document.createElement('li');
+        li.className = 'note-item';
+
+        let timeStr = '';
+        if (note.timestamp) {
+            const date = new Date(note.timestamp);
+            timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        li.innerHTML = `
+            <span class="note-text"><span class="note-time">${timeStr}</span> ${note.content}</span>
+        `;
+        notesList.appendChild(li);
+    });
 }
 
 function renderAgenda(items) {

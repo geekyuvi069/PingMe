@@ -1,7 +1,6 @@
 import os
 from fastapi import APIRouter, Depends, Header, HTTPException
 from services.db import get_db
-from services.telegram import send_message as send_telegram
 from services.ai import generate_ai_summary
 from datetime import datetime, timezone, timedelta
 from collections import Counter
@@ -66,34 +65,6 @@ def _top_activities_across_week(daily_snapshots: list, top_n: int = 5) -> list:
     return [act for act, _ in most_common]
 
 
-def _build_weekly_telegram_msg(week_start: str, week_end: str, stats: dict) -> str:
-    category_lines = "\n".join(
-        f"  {cat}: {hrs}h"
-        for cat, hrs in sorted(
-            stats["totalHoursPerCategory"].items(), key=lambda x: x[1], reverse=True
-        )
-    )
-    top_acts = "\n".join(f"  • {a}" for a in stats["topActivities"])
-    daily_lines = "\n".join(
-        f"  {d['date']}  deep_work: {d['deepWorkHours']}h  untracked: {d['untrackedPercent']}%"
-        for d in stats["dailyBreakdown"]
-    )
-
-    msg = (
-        f"<b>📅 Weekly Review — {week_start} → {week_end}</b>\n\n"
-        f"<b>⏱️ Total Tracked Hours</b>\n{category_lines}\n\n"
-        f"<b>📈 Weekly Stats</b>\n"
-        f"  Avg untracked: {stats['avgUntrackedPercent']}%\n"
-        f"  Most productive day: {stats['mostProductiveDay']}\n"
-        f"  Least productive day: {stats['leastProductiveDay']}\n\n"
-        f"<b>🏆 Top Activities</b>\n{top_acts}\n\n"
-        f"<b>📆 Daily Breakdown</b>\n{daily_lines}\n\n"
-    )
-
-    if stats.get("aiInsight"):
-        msg += f"<b>🤖 Weekly Insight</b>\n{stats['aiInsight']}"
-
-    return msg
 
 
 @router.post("/")
@@ -165,7 +136,7 @@ async def send_weekly_summary(x_cron_secret: str = Header(None), db=Depends(get_
                     "timestamp": snap["date"],
                 })
 
-        raw = await generate_ai_summary(pseudo_logs, [], [])
+        raw = await generate_ai_summary(pseudo_logs, [], [],{})
 
         # generate_ai_summary returns the full email-style text — extract a
         # short insight (first 400 chars) for Telegram
@@ -200,13 +171,6 @@ async def send_weekly_summary(x_cron_secret: str = Header(None), db=Depends(get_
     else:
         print(f"DEBUG: weekly_snapshot for {week_start} already exists — skipping save.", flush=True)
 
-    # ── Send Telegram ─────────────────────────────────────────────────────────
-    tg_msg = _build_weekly_telegram_msg(week_start, week_end, weekly_stats)
-    try:
-        await send_telegram(tg_msg)
-        print("DEBUG: Weekly Telegram message sent.", flush=True)
-    except Exception as te:
-        print(f"DEBUG: Telegram send failed: {te}", flush=True)
 
     # ── Delete rolled-up daily snapshots ──────────────────────────────────────
     snapshot_dates = [s["date"] for s in snapshots]

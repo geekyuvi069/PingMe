@@ -12,19 +12,3 @@ services:
       - 8.8.4.4
     environment:
       - RUNNING_IN_DOCKER=true
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-
-  bot:
-    build: .
-    command: python bot.py
-    env_file:
-      - .env
-    restart: unless-stopped
-    depends_on:
-      - api
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-    environment:
-      - RUNNING_IN_DOCKER=true
-      - GEMINI_API_KEY=${GEMINI_API_KEY}

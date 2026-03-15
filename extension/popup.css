@@ -37,7 +37,8 @@ header {
     letter-spacing: 2px;
 }
 
-button#settings-btn {
+button#settings-btn,
+button#audio-btn {
     background: none;
     border: none;
     color: var(--muted-text);
@@ -64,26 +65,11 @@ input[type="text"]:focus {
     border-color: var(--accent-color);
 }
 
-/* 5-button grid */
 .button-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
     margin-bottom: 16px;
-}
-
-.button-grid button:nth-child(1),
-.button-grid button:nth-child(2) {
-    grid-column: span 1;
-}
-
-/* Make last row of 2 buttons centred */
-.button-grid button:nth-child(4) {
-    grid-column: 1 / 2;
-}
-
-.button-grid button:nth-child(5) {
-    grid-column: 2 / 3;
 }
 
 button {
@@ -187,15 +173,16 @@ h3 {
 .note-item {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 6px 0;
-    border-bottom: 1px solid #1e1e1e;
+    margin-bottom: 8px;
     font-size: 12px;
+    gap: 8px;
 }
 
-.note-item:last-child {
-    border-bottom: none;
+.note-item::before {
+    content: "•";
+    color: var(--muted-text);
+    font-size: 14px;
+    margin-top: -1px;
 }
 
 .note-content {

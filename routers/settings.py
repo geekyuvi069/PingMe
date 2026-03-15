@@ -13,7 +13,6 @@ DEFAULT_SETTINGS = {
     "intervalMinutes": 15,
     "summaryTime": "21:00",
     "email": "",
-    "telegramChatId": "",
     "isPaused": False,
     "pauseUntil": None,
     "pendingPing": False,

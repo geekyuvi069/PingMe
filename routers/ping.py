@@ -2,7 +2,6 @@ import os
 from fastapi import APIRouter, Depends, Header, HTTPException, Body
 from services.db import get_db
 from services.categorize import categorize
-from services.telegram import send_message as send_telegram
 from datetime import datetime, timezone, timedelta
 import pytz
 from typing import Dict, Any
@@ -72,16 +71,9 @@ async def trigger_ping(x_cron_secret: str = Header(None), db = Depends(get_db)):
         from routers.agenda import carryforward_agenda
         await carryforward_agenda(db)
         
-        # Get today's agenda
-        cursor = db.agenda.find({"date": today_str})
-        agenda_items = await cursor.to_list(length=100)
-        agenda_text = "\n".join([f"- {'✅' if i['completed'] else '☐'} {i['content']}" for i in agenda_items])
-        
-        msg = f"<b>Good morning! ☀️</b>\n\n<b>📋 Today's Agenda</b>\n{agenda_text}\n\nHave a great day!"
-        await send_telegram(msg)
         await db.settings.update_one({"userId": "default"}, {"$set": {"lastMorningMessage": today_str}})
     else:
-        await send_telegram("Hey! What are you doing? 👀")
+        pass
         
     return {"fired": True}
 
