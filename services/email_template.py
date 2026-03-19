@@ -172,7 +172,8 @@ def generate_html_email(
     stats: dict,
     date_str: str,
     interval_minutes: int = 15,
-    ai_insight: str = ""
+    ai_insight: str = "",
+    reading: dict = None
 ) -> str:
     """Generate the full HTML email with charts and optional AI insight."""
 
@@ -185,9 +186,10 @@ def generate_html_email(
     bar_svg = generate_bar_chart_svg(category_breakdown, interval_minutes)
 
     # --- Agenda ---
-    completed_items = [i for i in agenda if i.get("completed")]
+    completed_count = len([i for i in agenda if i.get("completed")])
+    agenda_total = len(agenda)
     pending_items = [i for i in agenda if not i.get("completed")]
-    completion_pct = int(len(completed_items) / len(agenda) * 100) if agenda else 0
+    completion_pct = int(completed_count / agenda_total * 100) if agenda_total > 0 else 0
 
     agenda_rows = ""
     for item in agenda:
@@ -230,6 +232,30 @@ def generate_html_email(
             ).format(ts, note.get("content", ""))
     else:
         notes_html = "<p style='color:#4b5563;font-size:13px;font-family:Courier New,monospace;'>No notes captured.</p>"
+
+    # --- Reading ---
+    reading_block = ""
+    if reading and reading.get("snippetsRead", 0) > 0:
+        book_progress_html = ""
+        for title, p in reading.get("bookProgress", {}).items():
+            pct = p.get("pct", 0)
+            book_progress_html += (
+                "<div style='margin-bottom:12px;'>"
+                "<div style='display:flex;justify-content:space-between;font-size:12px;color:#9ca3af;margin-bottom:4px;'>"
+                "<span>{}</span><span>{}%</span></div>"
+                "<div style='background:#1f2937;height:4px;border-radius:2px;overflow:hidden;'>"
+                "<div style='background:#4ade80;width:{}%;height:100%;'></div></div>"
+                "</div>"
+            ).format(title, pct, pct)
+
+        reading_block = (
+            "<tr><td style='background:#0f1923;padding:28px 36px;"
+            "border-left:1px solid #1f2937;border-right:1px solid #1f2937;border-top:1px solid #1a1a2e;'>"
+            "<div style='font-size:11px;color:#4ade80;letter-spacing:2px;margin-bottom:16px;'>&#128214; READING TODAY</div>"
+            "<div style='font-size:14px;color:#d1d5db;margin-bottom:12px;'>Total: <b>{} snippets</b> ({:,} words)</div>"
+            "{}"
+            "</td></tr>"
+        ).format(reading.get("snippetsRead"), reading.get("wordsRead", 0), book_progress_html)
 
     # --- Timeline ---
     timeline_rows = ""
@@ -367,6 +393,9 @@ def generate_html_email(
         "</tr></table>"
         "</td></tr>"
 
+        # Reading block
+        "{reading_block}"
+
         # Agenda
         "<tr><td style='background:#0f1923;padding:28px 36px;"
         "border-left:1px solid #1f2937;border-right:1px solid #1f2937;border-top:1px solid #1a1a2e;'>"
@@ -419,8 +448,9 @@ def generate_html_email(
         ai_block=ai_block,
         pie_svg=pie_svg,
         bar_svg=bar_svg,
-        completed_count=len(completed_items),
-        agenda_total=len(agenda),
+        reading_block=reading_block,
+        completed_count=completed_count,
+        agenda_total=agenda_total,
         completion_pct=completion_pct,
         agenda_rows=agenda_rows,
         notes_html=notes_html,

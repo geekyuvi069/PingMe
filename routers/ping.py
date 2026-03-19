@@ -1,14 +1,38 @@
 import os
+import pytz
+from datetime import datetime, timezone, timedelta
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Body
 from services.db import get_db
-from services.categorize import categorize
-from datetime import datetime, timezone, timedelta
-import pytz
-from typing import Dict, Any
+from services.ai import categorize_with_ai, generate_nudge
+from services.summary import compute_stats
 
 router = APIRouter(prefix="/api/ping", tags=["ping"])
 
 CRON_SECRET = os.getenv("CRON_SECRET")
+
+@router.get("/nudge/")
+@router.get("/nudge")
+async def get_nudge(db = Depends(get_db)):
+    """Fetch a mid-day AI nudge based on today's activity."""
+    from routers.summary import get_today_range
+    utc_start, utc_end, today_str, user_tz = await get_today_range(db)
+    
+    query = {"timestamp": {"$gte": utc_start, "$lt": utc_end}}
+    logs = await db.logs.find(query).sort("timestamp", 1).to_list(100)
+    agenda = await db.agenda.find({"date": today_str}).to_list(100)
+    
+    if len(logs) < 3:
+        return {"nudge": ""}
+        
+    stats = compute_stats(logs, agenda)
+    
+    try:
+        # 4s timeout as per FEATURES.md
+        nudge = await generate_nudge(logs, stats)
+        return {"nudge": nudge}
+    except Exception:
+        return {"nudge": ""}
 
 @router.post("/trigger")
 async def trigger_ping(x_cron_secret: str = Header(None), db = Depends(get_db)):
@@ -64,20 +88,27 @@ async def trigger_ping(x_cron_secret: str = Header(None), db = Depends(get_db)):
     })
     
     # Check if morning kickoff (within 15 mins of sleepEnd and first message today)
-    # Simplified morning kickoff check for now: if lastMorningMessage != today
     today_str = now.strftime("%Y-%m-%d")
     if settings.get("lastMorningMessage") != today_str:
         # It's time for morning kickoff
         from routers.agenda import carryforward_agenda
         await carryforward_agenda(db)
         
+        # --- Morning Kickoff via Telegram ---
+        # Note: Previous removal was recent, but docs2 requires it.
+        # We use a helper from a new services/telegram.py or similar.
+        try:
+            from services.telegram import send_morning_kickoff
+            await send_morning_kickoff(db, today_str)
+        except Exception as e:
+            print(f"DEBUG: Morning kickoff failed: {e}")
+        
         await db.settings.update_one({"userId": "default"}, {"$set": {"lastMorningMessage": today_str}})
-    else:
-        pass
         
     return {"fired": True}
 
 @router.get("/status/")
+@router.get("/status")
 async def get_status(db = Depends(get_db)):
     settings = await db.settings.find_one({"userId": "default"})
     if not settings:
@@ -88,14 +119,18 @@ async def get_status(db = Depends(get_db)):
     }
 
 @router.post("/respond/")
+@router.post("/respond")
 async def respond_ping(data: Dict[str, Any] = Body(...), db = Depends(get_db)):
     response_text = data.get("response")
     skipped = data.get("skipped", False)
     untracked = data.get("untracked", False)
     
     category = "untracked"
+    category_source = "system"
+    
     if not skipped and not untracked and response_text:
-        category = categorize(response_text)
+        category = await categorize_with_ai(response_text)
+        category_source = "ai"
         
     log_entry = {
         "timestamp": datetime.now(timezone.utc),
@@ -104,7 +139,7 @@ async def respond_ping(data: Dict[str, Any] = Body(...), db = Depends(get_db)):
         "skipped": skipped,
         "untracked": untracked,
         "category": category,
-        "categorySource": "keyword" if response_text else "system"
+        "categorySource": category_source
     }
     
     await db.logs.insert_one(log_entry)

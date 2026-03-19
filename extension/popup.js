@@ -1,4 +1,4 @@
-const DEFAULT_API_URL = 'http://localhost:8000';
+const DEFAULT_API_URL = 'http://127.0.0.1:8000';
 const DEFAULT_INTERVAL = 15;
 
 let API_URL = DEFAULT_API_URL;
@@ -8,13 +8,21 @@ let intervalMins = DEFAULT_INTERVAL;
 const countdownEl = document.getElementById('countdown');
 const logInput = document.getElementById('log-input');
 const statusMsg = document.getElementById('status-msg');
+const nudgeDisplay = document.getElementById('nudge-display');
 const agendaPanel = document.getElementById('agenda-panel');
 const agendaList = document.getElementById('agenda-list');
 const newAgendaInput = document.getElementById('new-agenda-input');
 const notesPanel = document.getElementById('notes-panel');
 const notesList = document.getElementById('notes-list');
+const readingPage = document.getElementById('reading-page');
+const bookSelector = document.getElementById('book-selector');
+const snippetText = document.getElementById('snippet-text');
+const readingMeta = document.getElementById('reading-meta');
 const settingsPanel = document.getElementById('settings-panel');
 const mainPanel = document.getElementById('main-panel');
+
+// State for reading
+let currentSnippetData = null;
 
 // Load Settings
 chrome.storage.local.get(['apiUrl', 'interval', 'lastLoggedAt', 'sleepStart', 'sleepEnd', 'isManualSleep'], (result) => {
@@ -22,6 +30,7 @@ chrome.storage.local.get(['apiUrl', 'interval', 'lastLoggedAt', 'sleepStart', 's
     intervalMins = result.interval || DEFAULT_INTERVAL;
     document.getElementById('manual-sleep-toggle').checked = !!result.isManualSleep;
     updateTimerDisplay();
+    fetchNudge();
 });
 
 // Update timer every second
@@ -62,6 +71,15 @@ document.getElementById('settings-btn').onclick = openSettings;
 document.getElementById('close-settings-btn').onclick = closeSettings;
 document.getElementById('save-settings-btn').onclick = saveSettings;
 
+document.getElementById('header-reading-btn').onclick = openReadingPage;
+document.getElementById('close-reading-btn').onclick = closeReadingPage;
+document.getElementById('read-done-btn').onclick = () => markSnippetAsRead(false);
+document.getElementById('read-next-btn').onclick = () => fetchSnippet(bookSelector.value); // Re-fetch/Skip
+
+bookSelector.onchange = () => {
+    if (bookSelector.value) fetchSnippet(bookSelector.value);
+};
+
 function getMotivationalLine() {
     const lines = [
         "धैर्यं सर्वत्र साधनम्",
@@ -78,11 +96,31 @@ function getMotivationalLine() {
     return lines[Math.floor(Date.now() / 3600000) % lines.length]; // Change every hour
 }
 
+async function fetchNudge() {
+    try {
+        const resp = await fetch(`${API_URL}/api/ping/nudge`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
+        const data = await resp.json();
+        if (data.nudge) {
+            nudgeDisplay.textContent = data.nudge;
+            nudgeDisplay.classList.remove('hidden');
+        } else {
+            nudgeDisplay.classList.add('hidden');
+        }
+    } catch (e) {
+        nudgeDisplay.classList.add('hidden');
+    }
+}
+
 async function submitLog(payload) {
     try {
         const resp = await fetch(`${API_URL}/api/ping/respond/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
             body: JSON.stringify({ ...payload, source: 'extension' })
         });
         if (resp.ok) {
@@ -103,7 +141,10 @@ async function handleNoteSubmit() {
     try {
         const resp = await fetch(`${API_URL}/api/notes/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
             body: JSON.stringify({ content, source: 'extension' })
         });
         if (resp.ok) {
@@ -123,38 +164,135 @@ function showStatus(msg) {
 
 // Panel Toggling
 function togglePanel(type) {
-    if (type === 'agenda') {
-        const isHidden = agendaPanel.classList.toggle('hidden');
-        document.getElementById('agenda-btn').classList.toggle('active-panel', !isHidden);
+    // Hide all first
+    const panels = ['agenda', 'notes'];
+    const btns = ['agenda-btn', 'note-btn'];
 
-        // Hide Notes if showing Agenda
-        if (!isHidden) {
-            notesPanel.classList.add('hidden');
-            document.getElementById('note-btn').classList.remove('active-panel');
-            fetchAgenda();
+    panels.forEach((p, i) => {
+        const el = document.getElementById(`${p}-panel`);
+        const btn = document.getElementById(btns[i]);
+        if (p === type) {
+            const isHidden = el.classList.toggle('hidden');
+            btn.classList.toggle('active-panel', !isHidden);
+            if (!isHidden) {
+                if (type === 'agenda') fetchAgenda();
+                if (type === 'notes') fetchNotes();
+            }
+        } else {
+            el.classList.add('hidden');
+            btn.classList.remove('active-panel');
         }
-    } else if (type === 'notes') {
-        // If the input is not empty, handle as submission
-        if (logInput.value.trim()) {
-            handleNoteSubmit();
+    });
+
+    // Special case for notes shorthand
+    if (type === 'notes' && logInput.value.trim() && notesPanel.classList.contains('hidden')) {
+        handleNoteSubmit();
+    }
+}
+
+// Reading Habit Logic
+function openReadingPage() {
+    mainPanel.classList.add('hidden');
+    settingsPanel.classList.add('hidden');
+    readingPage.classList.remove('hidden');
+    fetchActiveBooks();
+}
+
+function closeReadingPage() {
+    readingPage.classList.add('hidden');
+    mainPanel.classList.remove('hidden');
+}
+
+async function fetchActiveBooks() {
+    try {
+        const resp = await fetch(`${API_URL}/api/reading/books`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
+        const books = await resp.json();
+        const active = books.filter(b => b.isActive && !b.isCompleted);
+
+        // Preserve current selection if possible
+        const currentVal = bookSelector.value;
+        bookSelector.innerHTML = '<option value="">Select a book...</option>';
+
+        active.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b._id;
+            opt.textContent = b.title;
+            bookSelector.appendChild(opt);
+        });
+
+        if (currentVal && active.some(b => b._id === currentVal)) {
+            bookSelector.value = currentVal;
+        } else if (active.length > 0) {
+            bookSelector.value = active[0]._id;
+            fetchSnippet(active[0]._id);
+        }
+    } catch (e) {
+        showStatus('Error loading books');
+    }
+}
+
+async function fetchSnippet(bookId = null) {
+    const url = bookId ? `${API_URL}/api/reading/snippet/${bookId}` : `${API_URL}/api/reading/snippet`;
+
+    snippetText.textContent = 'Loading snippet...';
+    document.getElementById('book-title-display').textContent = '';
+    document.getElementById('progress-pct').textContent = '';
+
+    try {
+        const resp = await fetch(url, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
+        const data = await resp.json();
+        if (data.snippet === null || data.content === undefined) {
+            document.getElementById('reading-content').classList.add('hidden');
+            document.getElementById('no-reading').classList.remove('hidden');
             return;
         }
-        const isHidden = notesPanel.classList.toggle('hidden');
-        document.getElementById('note-btn').classList.toggle('active-panel', !isHidden);
 
-        // Hide Agenda if showing Notes
-        if (!isHidden) {
-            agendaPanel.classList.add('hidden');
-            document.getElementById('agenda-btn').classList.remove('active-panel');
-            fetchNotes();
+        document.getElementById('reading-content').classList.remove('hidden');
+        document.getElementById('no-reading').classList.add('hidden');
+
+        currentSnippetData = data;
+        snippetText.textContent = data.content;
+        document.getElementById('book-title-display').textContent = data.title;
+        document.getElementById('progress-pct').textContent = `${data.pct}%`;
+    } catch (e) {
+        snippetText.textContent = 'Error loading snippet. Check API.';
+    }
+}
+
+async function markSnippetAsRead(isBonus = false) {
+    if (!currentSnippetData) return;
+    try {
+        const resp = await fetch(`${API_URL}/api/reading/snippet/read`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
+            body: JSON.stringify({
+                bookId: currentSnippetData.bookId,
+                snippetIndex: currentSnippetData.snippetIndex,
+                isBonus: isBonus
+            })
+        });
+        if (resp.ok) {
+            showStatus('Great progress! 📖');
+            fetchActiveBooks(); // Refresh list and pick next book
         }
+    } catch (e) {
+        showStatus('Failed to update progress');
     }
 }
 
 // Agenda Logic
 async function fetchAgenda() {
     try {
-        const resp = await fetch(`${API_URL}/api/agenda/`);
+        const resp = await fetch(`${API_URL}/api/agenda/`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
         const items = await resp.json();
         renderAgenda(items);
     } catch (e) {
@@ -164,7 +302,9 @@ async function fetchAgenda() {
 
 async function fetchNotes() {
     try {
-        const resp = await fetch(`${API_URL}/api/notes/`);
+        const resp = await fetch(`${API_URL}/api/notes/`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
         const items = await resp.json();
         renderNotes(items);
     } catch (e) {
@@ -174,7 +314,6 @@ async function fetchNotes() {
 
 function renderNotes(items) {
     notesList.innerHTML = '';
-    // API returns newest first usually, but let's take last 10
     const recent = items.slice(0, 10);
     recent.forEach(note => {
         const li = document.createElement('li');
@@ -210,7 +349,10 @@ function renderAgenda(items) {
 async function toggleAgendaItem(id, completed) {
     await fetch(`${API_URL}/api/agenda/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+        },
         body: JSON.stringify({ completed })
     });
 }
@@ -220,7 +362,10 @@ async function addAgendaItem() {
     if (!content) return;
     const resp = await fetch(`${API_URL}/api/agenda/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+        },
         body: JSON.stringify({ content, source: 'extension' })
     });
     if (resp.ok) {
@@ -277,8 +422,7 @@ const audioFiles = [
     "audio/quote2.mp3",
     "audio/quote3.mp3",
     "audio/quote4.mp3",
-    "audio/quote5.mp3",
-    // add more here
+    "audio/quote5.mp3"
 ];
 
 let currentAudio = null;

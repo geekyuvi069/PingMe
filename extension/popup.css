@@ -38,12 +38,14 @@ header {
 }
 
 button#settings-btn,
-button#audio-btn {
+button#audio-btn,
+button#header-reading-btn {
     background: none;
     border: none;
     color: var(--muted-text);
     font-size: 20px;
     cursor: pointer;
+    padding: 0 4px;
 }
 
 .input-group {
@@ -311,4 +313,73 @@ input[type="time"] {
     opacity: 0.9;
     text-transform: none;
     line-height: 1.2;
+}
+
+#nudge-display {
+    background-color: rgba(76, 175, 80, 0.1);
+    border: 1px solid var(--accent-color);
+    color: var(--accent-color);
+    padding: 10px;
+    font-size: 11px;
+    font-style: italic;
+    margin-bottom: 12px;
+    border-radius: 4px;
+    line-height: 1.4;
+}
+
+/* ── Reading Page ── */
+#reading-page {
+    border-top: none;
+    padding-top: 0;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 8px;
+}
+
+.page-header h3 {
+    margin-bottom: 0;
+    flex: 0 0 auto;
+}
+
+#book-selector {
+    flex: 1;
+    background: #111;
+    color: #eee;
+    border: 1px solid var(--border-color);
+    padding: 4px;
+    font-family: inherit;
+    font-size: 11px;
+    outline: none;
+    min-width: 0;
+    border-radius: 4px;
+}
+
+#snippet-text {
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
+    color: #eee;
+    white-space: pre-wrap;
+}
+
+#reading-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted-text);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+}
+
+#no-reading p {
+    text-align: center;
+    padding: 20px;
 }

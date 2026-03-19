@@ -1,15 +1,10 @@
 # PingMe 🚀
 
-PingMe is a personal productivity tracker designed to help you stay focused, track your time, and manage your daily agenda. It features a FastAPI backend, a Telegram bot for mobile interaction, and a professional Chrome Extension for proactive pings.
-
-## ✨ Features
-
-- **Proactive Pings**: Asks "What are you doing?" at set intervals.
+- **Proactive Pings**: Track your activity at set intervals via the Web Dashboard.
 - **Auto-Categorization**: Intelligently categorizes your responses (Deep Work, Break, Admin, etc.).
-- **Daily Agenda**: Manage tasks via Telegram or the Web Dashboard.
+- **Daily Agenda**: Manage tasks via the Web Dashboard.
 - **Quick Notes**: Capture thoughts on the go.
-- **AI Insights**: (Phase 6) Weekly analysis of your productivity patterns.
-- **Daily Summaries**: Receive reports via Telegram and Email.
+- **Daily Summaries**: Receive detailed reports via Email.
 
 ---
 
@@ -19,7 +14,6 @@ PingMe is a personal productivity tracker designed to help you stay focused, tra
 
 - Python 3.11+
 - MongoDB Atlas (or local MongoDB)
-- Telegram Bot Token & Chat ID
 - [Resend.com](https://resend.com) API Key (for emails)
 
 ### 1. Configuration
@@ -41,7 +35,6 @@ docker compose up --build -d
 
 This will start:
 - **API**: [http://localhost:8000](http://localhost:8000)
-- **Telegram Bot**: Runs inside the container, connecting to the API via `http://api:8000`.
 
 ### 3. Chrome Extension
 

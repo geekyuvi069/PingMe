@@ -1,100 +1,127 @@
 import os
+import asyncio
 import google.generativeai as genai
-from dotenv import load_dotenv
+from typing import List, Dict, Any
+from services.categorize import categorize as keyword_categorize
 
-load_dotenv()
+# Configure Gemini
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# Priority order for models
+MODELS = ["gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro"]
 
-async def generate_ai_summary(logs: list, agenda: list, notes: list, stats: dict) -> str:
-    """
-    Generate a meaningful plain-English insight about yesterday's productivity.
-    Returns a short HTML-safe string to embed in the email.
-    """
+async def call_gemini(prompt: str, model_name: str = "gemini-2.0-flash-lite", timeout: float = 10.0) -> str:
+    """Helper to call Gemini with timeout and error handling."""
+    if not GEMINI_API_KEY:
+        return ""
+    
+    try:
+        model = genai.GenerativeModel(model_name)
+        # run_in_executor to avoid blocking since genai is sync
+        loop = asyncio.get_event_loop()
+        response = await asyncio.wait_for(
+            loop.run_in_executor(None, lambda: model.generate_content(prompt)),
+            timeout=timeout
+        )
+        return response.text.strip()
+    except Exception as e:
+        print(f"DEBUG: Gemini error ({model_name}): {e}")
+        return ""
 
-    models_to_try = [
-        "gemini-2.0-flash-lite",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro"
-    ]
-    last_error = None
-
-    # Build a clean readable version of the day for the prompt
-    category_breakdown = stats.get("categoryBreakdown", {})
-    tracked = stats.get("trackedCount", 0)
-    untracked_pct = stats.get("untrackedPercent", 0)
-    total = stats.get("totalPings", 0)
-
-    # Time per category (assuming 15 min intervals)
-    interval = 15
-    time_lines = []
-    for cat, count in sorted(category_breakdown.items(), key=lambda x: -x[1]):
-        minutes = count * interval
-        hours = minutes // 60
-        mins = minutes % 60
-        time_str = f"{hours}h {mins}m" if hours > 0 else f"{mins}m"
-        time_lines.append(f"- {cat.replace('_', ' ').title()}: {time_str}")
-
-    # Log responses (what they actually did)
-    activities = []
-    for log in logs:
-        if log.get("response"):
-            activities.append(log["response"])
-    activities_text = "\n".join(f"- {a}" for a in activities[:30])  # cap at 30
-
-    # Agenda summary
-    completed = [i["content"] for i in agenda if i.get("completed")]
-    pending = [i["content"] for i in agenda if not i.get("completed")]
-
-    # Notes
-    notes_text = "\n".join(f"- {n['content']}" for n in notes) if notes else "None"
+async def categorize_with_ai(response_text: str) -> str:
+    """Categorize a ping response using Gemini."""
+    if not response_text:
+        return "untracked"
 
     prompt = f"""
-You are a personal productivity coach giving a warm, honest, and insightful recap of someone's previous day.
+    Categorize the following activity description into EXACTLY ONE of these categories:
+    deep_work, break, admin, meetings, distracted.
 
-Here is their data:
+    Activity: "{response_text}"
 
-TRACKED TIME BREAKDOWN:
-{chr(10).join(time_lines) if time_lines else "No tracked time"}
+    Rules:
+    - Respond with ONLY the category name.
+    - If unsure, use 'deep_work'.
+    - 'deep_work' includes studying, coding, reading, learning, researching.
+    - 'break' includes food, rest, walk, nap.
+    - 'admin' includes email, planning, messages, chores.
+    - 'meetings' includes calls, syncs, interviews.
+    - 'distracted' includes social media, random browsing, entertainment.
+    """
 
-UNTRACKED: {untracked_pct}% of the day ({total} total pings)
+    for model in MODELS[:2]: # Use faster models for categorization
+        result = await call_gemini(prompt, model_name=model, timeout=5.0)
+        result = result.lower().replace(" ", "_")
+        if result in ["deep_work", "break", "admin", "meetings", "distracted"]:
+            return result
+    
+    # Fallback to keyword matching
+    return keyword_categorize(response_text)
 
-WHAT THEY ACTUALLY DID (their own words):
-{activities_text if activities_text else "No responses logged"}
+async def generate_nudge(logs_today: List[Dict], stats_today: Dict) -> str:
+    """Generate a single sharp sentence nudge based on today's activity."""
+    if len(logs_today) < 3:
+        return ""
 
-AGENDA COMPLETED ({len(completed)}/{len(completed) + len(pending)}):
-Completed: {", ".join(completed) if completed else "None"}
-Incomplete: {", ".join(pending) if pending else "None"}
+    activities = [l.get("response") for l in logs_today if l.get("response")]
+    if not activities:
+        return ""
 
-NOTES THEY CAPTURED:
-{notes_text}
+    prompt = f"""
+    Generate a single, sharp, motivational or advisory sentence (max 15 words) based on today's activity log.
+    If the user is doing well, encourage them. If they are distracted or stuck in admin/meetings, give a gentle nudge to return to deep work.
 
-Write a SHORT, warm, human insight (4-6 sentences max) covering:
-1. What kind of day it was overall (focused? scattered? balanced?)
-2. One specific observation about their work pattern based on what they did
-3. One honest nudge or encouragement based on incomplete tasks or untracked time
-4. One thing to carry into today
+    Today's activities: {', '.join(activities)}
+    Stats: {stats_today}
 
-Rules:
-- Do NOT use bold (**) or markdown
-- Do NOT use bullet points
-- Write in flowing sentences like a thoughtful friend, not a corporate report
-- Be specific — mention actual activities they logged, not generic advice
-- Keep it under 100 words
-"""
+    Example outputs:
+    - "3 hours of admin — deep work window is closing fast."
+    - "4 skips in a row — what's actually blocking you?"
+    - "Solid focus since 9am, protect this streak."
+    """
 
-    for model_name in models_to_try:
-        try:
-            print(f"DEBUG: Trying Gemini model: {model_name}", flush=True)
-            model = genai.GenerativeModel(model_name)
-            response = await model.generate_content_async(prompt)
-            print(f"DEBUG: Successfully used model: {model_name}", flush=True)
-            return response.text.strip()
-        except Exception as e:
-            print(f"DEBUG: Model {model_name} failed: {e}", flush=True)
-            last_error = e
-            continue
+    return await call_gemini(prompt, model_name="gemini-2.0-flash-lite", timeout=4.0)
 
-    print(f"DEBUG: All Gemini models failed: {last_error}", flush=True)
-    return ""  # Return empty string so email still sends without AI section
+async def generate_ai_summary(logs: List[Dict], agenda: List[Dict], notes: List[Dict], stats: Dict) -> str:
+    """Generate a daily insight paragraph (4-6 sentences) for the email summary."""
+    if not logs:
+        return "Not enough data for an AI insight today. Keep pinging!"
+
+    tracked_logs = [l.get("response") for l in logs if l.get("response")]
+    agenda_done = [a.get("content") for a in agenda if a.get("completed")]
+    agenda_pending = [a.get("content") for a in agenda if not a.get("completed")]
+    
+    prompt = f"""
+    Write a cohesive, insightful 4-6 sentence paragraph (first-person addressing the user) summarizing their day.
+    Reference specific activities from the log and compare time spent on Deep Work vs other categories.
+    Be reflective, supportive, and slightly professional.
+
+    Logs: {tracked_logs}
+    Stats: {stats}
+    Completed Tasks: {agenda_done}
+    Pending Tasks: {agenda_pending}
+    Notes: {[n.get('content') for n in notes]}
+    """
+
+    # Try pro model first for better writing
+    for model in ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"]:
+        result = await call_gemini(prompt, model_name=model, timeout=15.0)
+        if result:
+            return result
+    
+    return ""
+
+async def generate_weekly_insight(weekly_stats: Dict, daily_breakdown: List[Dict], top_activities: List[str]) -> str:
+    """Generate a 3-5 sentence weekly pattern analysis."""
+    prompt = f"""
+    Analyze the following weekly productivity patterns and provide a 3-5 sentence reflection.
+    Identify the most and least productive days, trends in deep work, and recommend one concrete change for next week.
+
+    Weekly Stats: {weekly_stats}
+    Daily Summaries: {daily_breakdown}
+    Top Activities: {top_activities}
+    """
+
+    return await call_gemini(prompt, model_name="gemini-2.0-flash", timeout=15.0)

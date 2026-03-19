@@ -11,6 +11,7 @@
         <header>
             <div id="countdown">15:00</div>
             <div style="display:flex; gap:8px; align-items:center;">
+                <button id="header-reading-btn" title="Reading">📖</button>
                 <button id="audio-btn" title="Play/Pause">▶</button>
                 <button id="settings-btn" title="Settings">⚙</button>
             </div>
@@ -29,6 +30,7 @@
                 <button id="agenda-btn">Agenda</button>
             </div>
 
+            <div id="nudge-display" class="hidden"></div>
             <div id="status-msg"></div>
 
             <section id="agenda-panel" class="hidden">
@@ -44,6 +46,33 @@
                 <ul id="notes-list"></ul>
             </section>
         </main>
+
+        <section id="reading-page" class="hidden">
+            <div class="page-header">
+                <h3>📖 Reading Habit</h3>
+                <select id="book-selector">
+                    <option value="">Select a book...</option>
+                </select>
+            </div>
+
+            <div id="reading-content" class="hidden">
+                <div id="snippet-text">Loading snippet...</div>
+                <div id="reading-meta">
+                    <span id="book-title-display"></span>
+                    <span id="progress-pct"></span>
+                </div>
+                <div class="button-grid">
+                    <button id="read-done-btn" class="primary">Mark as Read</button>
+                    <button id="read-next-btn">Skip Snippet</button>
+                </div>
+            </div>
+
+            <div id="no-reading" class="hidden">
+                <p class="muted">No active books. Upload one in the dashboard!</p>
+            </div>
+
+            <button id="close-reading-btn" style="width:100%; margin-top:16px;">Back</button>
+        </section>
 
         <section id="settings-panel" class="hidden">
             <h3>⚙ Settings</h3>

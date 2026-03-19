@@ -1,24 +1,48 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>PingMe Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
+
 <body>
     <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h1>PingMe Dashboard — <span id="current-date">{{ summary.date }}</span></h1>
         <a href="/settings" style="color: var(--text-dim); text-decoration: none;">⚙️ Settings</a>
     </header>
 
+    <div id="nudge-container"></div>
+
+    <div class="stats-grid">
+        <div class="stat-item">
+            <div class="stat-value">{{ summary.stats.studyMinutes }}m</div>
+            <div class="stat-label">Deep Work</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">{{ summary.stats.activeMinutes }}m</div>
+            <div class="stat-label">Active Time</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">{{ summary.stats.agendaCompleted }}/{{ summary.stats.agendaTotal }}</div>
+            <div class="stat-label">Tasks Done</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">{{ summary.reading.snippetsRead }}</div>
+            <div class="stat-label">Snippets Read</div>
+        </div>
+    </div>
+
     <div class="container">
-        <!-- Timeline -->
+        <!-- Left: Timeline -->
         <div class="card">
             <h2>⏱️ Timeline</h2>
             <ul id="log-list">
                 {% for log in summary.logs %}
                 <li>
-                    <span class="log-time">{{ log.timestamp }}</span>
+                    <span class="log-time">{{ log.timestamp.split('T')[1][:5] if 'T' in log.timestamp else log.timestamp
+                        }}</span>
                     <span>{{ log.response or "[untracked/skipped]" }}</span>
                     <span class="badge {{ log.category }}">{{ log.category }}</span>
                 </li>
@@ -26,43 +50,87 @@
             </ul>
         </div>
 
-        <!-- Agenda -->
-        <div class="card">
-            <h2>📋 Agenda</h2>
-            <ul id="agenda-list">
-                {% for item in summary.agenda %}
-                <li class="agenda-item {{ 'completed' if item.completed else '' }}">
-                    <input type="checkbox" {{ 'checked' if item.completed else '' }} 
-                           onchange="toggleAgenda('{{ item._id }}', this.checked)">
-                    <span>{{ item.content }}</span>
-                </li>
-                {% endfor %}
-            </ul>
-            <div style="margin-top: 20px;">
-                <input type="text" id="new-agenda-item" placeholder="Add new task...">
-                <button onclick="addAgenda()">Add Task</button>
+        <!-- Middle: Agenda & Notes -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="card">
+                <h2>📋 Agenda</h2>
+                <ul id="agenda-list">
+                    {% for item in summary.agenda %}
+                    <li class="agenda-item {{ 'completed' if item.completed else '' }}">
+                        <input type="checkbox" {{ 'checked' if item.completed else '' }}
+                            onchange="toggleAgenda('{{ item._id }}', this.checked)">
+                        <span>{{ item.content }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div style="margin-top: 20px;">
+                    <input type="text" id="new-agenda-item" placeholder="Add new task...">
+                    <button onclick="addAgenda()">Add Task</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🗒️ Notes</h2>
+                <ul id="note-list">
+                    {% for note in summary.notes %}
+                    <li>
+                        <span class="log-time">{{ note.timestamp.split('T')[1][:5] if 'T' in note.timestamp else
+                            note.timestamp }}</span>
+                        <div>{{ note.content }}</div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div style="margin-top: 20px;">
+                    <input type="text" id="new-note" placeholder="Write a note...">
+                    <button onclick="addNote()">Save Note</button>
+                </div>
             </div>
         </div>
 
-        <!-- Notes -->
+        <!-- Right: Reading Habit -->
         <div class="card">
-            <h2>🗒️ Notes</h2>
-            <ul id="note-list">
-                {% for note in summary.notes %}
-                <li>
-                    <span class="log-time">{{ note.timestamp }}</span>
-                    <div>{{ note.content }}</div>
-                </li>
+            <h2>📖 Reading</h2>
+            <div id="reading-stats" style="margin-bottom: 20px;">
+                {% for title, p in summary.reading.bookProgress.items() %}
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px;">
+                        <span>{{ title }}</span>
+                        <span style="color: var(--text-dim);">{{ p.pct }}%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-fill" style="width: {{ p.pct }}%"></div>
+                    </div>
+                </div>
                 {% endfor %}
-            </ul>
-            <div style="margin-top: 20px;">
-                <input type="text" id="new-note" placeholder="Write a note...">
-                <button onclick="addNote()">Save Note</button>
             </div>
+
+            <h3>Add Book (PDF/EPUB)</h3>
+            <form id="upload-form" style="margin-top: 10px;">
+                <input type="text" id="book-title" placeholder="Book Title" required>
+                <input type="file" id="book-file" accept=".pdf,.epub" required style="margin-bottom: 10px;">
+                <button type="submit">Upload & Process</button>
+            </form>
         </div>
     </div>
 
     <script>
+        // Fetch AI Nudge on load
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const resp = await fetch('/api/ping/nudge');
+                const data = await resp.json();
+                if (data.nudge) {
+                    const container = document.getElementById('nudge-container');
+                    container.innerHTML = `
+                        <div class="nudge-card">
+                            <span>🤖</span>
+                            <span>${data.nudge}</span>
+                        </div>
+                    `;
+                }
+            } catch (e) { }
+        });
+
         async function toggleAgenda(id, completed) {
             await fetch(`/api/agenda/${id}`, {
                 method: 'PATCH',
@@ -93,6 +161,35 @@
             });
             window.location.reload();
         }
+
+        document.getElementById('upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('book-title').value;
+            const file = document.getElementById('book-file').files[0];
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('file', file);
+
+            const btn = e.target.querySelector('button');
+            btn.disabled = true;
+            btn.innerText = 'Uploading...';
+
+            try {
+                const resp = await fetch('/api/reading/books/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (resp.ok) window.location.reload();
+                else alert('Upload failed');
+            } catch (err) {
+                alert('Error uploading');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Upload & Process';
+            }
+        });
     </script>
 </body>
+
 </html>
