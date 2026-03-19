@@ -139,13 +139,20 @@ async def get_next_snippet(db = Depends(get_db)):
         
     snippet = best_book["snippets"][idx]
     
+    # Velocity for daysLeft
+    stats = await get_reading_stats(db)
+    vel = stats.get("avgDaily", 2.0)
+    remaining = best_book["totalSnippets"] - idx
+    days_left = int(remaining / vel) if vel > 0 else 0
+    
     return {
         "bookId": str(best_book["_id"]),
         "title": best_book["title"],
         "snippetIndex": idx,
         "totalSnippets": best_book["totalSnippets"],
         "content": snippet,
-        "pct": int((idx / best_book["totalSnippets"]) * 100)
+        "pct": int((idx / best_book["totalSnippets"]) * 100),
+        "daysLeft": days_left
     }
 
 @router.get("/snippet/{book_id}")
@@ -161,13 +168,20 @@ async def get_book_snippet(book_id: str, db = Depends(get_db)):
         
     snippet = book["snippets"][idx]
     
+    # Velocity for daysLeft
+    stats = await get_reading_stats(db)
+    vel = stats.get("avgDaily", 2.0)
+    remaining = book["totalSnippets"] - idx
+    days_left = int(remaining / vel) if vel > 0 else 0
+    
     return {
         "bookId": str(book["_id"]),
         "title": book["title"],
         "snippetIndex": idx,
         "totalSnippets": book["totalSnippets"],
         "content": snippet,
-        "pct": int((idx / book["totalSnippets"]) * 100)
+        "pct": int((idx / book["totalSnippets"]) * 100),
+        "daysLeft": days_left
     }
 
 @router.post("/snippet/read")
@@ -206,31 +220,47 @@ async def mark_read(data: Dict[str, Any] = Body(...), db = Depends(get_db)):
 
 @router.get("/stats")
 async def get_reading_stats(db = Depends(get_db)):
-    """Get today's reading stats."""
-    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    """Get today's and 7-day average reading stats."""
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    seven_days_ago = today_start - timedelta(days=7)
     
-    cursor = db.reading_logs.find({"readAt": {"$gte": today_start}})
-    logs = await cursor.to_list(length=100)
+    # Today's logs
+    today_cursor = db.reading_logs.find({"readAt": {"$gte": today_start}})
+    today_logs = await today_cursor.to_list(length=100)
     
-    snippets_read = len(logs)
-    words_read = sum(l.get("wordsRead", 280) for l in logs)
-    books_read = list(set(l.get("bookTitle") for l in logs if l.get("bookTitle")))
+    # 7-day velocity
+    week_cursor = db.reading_logs.find({"readAt": {"$gte": seven_days_ago, "$lt": today_start}})
+    week_logs = await week_cursor.to_list(length=1000)
+    avg_daily = len(week_logs) / 7.0
+    if avg_daily < 1.0: avg_daily = 2.0 # Default fallback as per features? Or just use it.
+    
+    snippets_read = len(today_logs)
+    words_read = sum(l.get("wordsRead", 280) for l in today_logs)
+    books_read = list(set(l.get("bookTitle") for l in today_logs if l.get("bookTitle")))
     
     # Progress for active books
     active_books = await db.books.find({"isActive": True}).to_list(length=3)
     book_progress = {}
     for b in active_books:
+        current = b["currentSnippet"]
+        total = b["totalSnippets"]
+        remaining = total - current
+        days_left = int(remaining / avg_daily) if avg_daily > 0 else 0
+        
         book_progress[b["title"]] = {
-            "current": b["currentSnippet"],
-            "total": b["totalSnippets"],
-            "pct": int((b["currentSnippet"] / b["totalSnippets"]) * 100) if b["totalSnippets"] > 0 else 0
+            "current": current,
+            "total": total,
+            "pct": int((current / total) * 100) if total > 0 else 0,
+            "daysLeft": days_left
         }
         
     return {
         "snippetsRead": snippets_read,
         "wordsRead": words_read,
         "booksRead": books_read,
-        "bookProgress": book_progress
+        "bookProgress": book_progress,
+        "avgDaily": round(avg_daily, 1)
     }
 
 @router.get("/streak")

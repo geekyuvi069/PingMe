@@ -139,7 +139,7 @@ def generate_bar_chart_svg(category_breakdown: dict, interval_minutes: int = 15)
     for i, (cat, count) in enumerate(sorted(category_breakdown.items(), key=lambda x: -x[1])):
         y = i * (bar_height + gap) + 5
         bar_w = int((count / max_val) * bar_max_width) if max_val > 0 else 0
-        minutes = count * interval_minutes
+        minutes = int(count) # count is already in minutes from compute_stats
         hours = minutes // 60
         mins = minutes % 60
         time_str = "{}h {}m".format(hours, mins) if hours > 0 else "{}m".format(mins)
@@ -235,7 +235,7 @@ def generate_html_email(
 
     # --- Reading ---
     reading_block = ""
-    if reading and reading.get("snippetsRead", 0) > 0:
+    if reading and (reading.get("snippetsRead", 0) > 0 or reading.get("bookProgress")):
         book_progress_html = ""
         for title, p in reading.get("bookProgress", {}).items():
             pct = p.get("pct", 0)

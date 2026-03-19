@@ -11,6 +11,10 @@
         <header>
             <div id="countdown">15:00</div>
             <div style="display:flex; gap:8px; align-items:center;">
+                <div id="reading-pips" title="Daily Reading Progress">
+                    <span class="pip"></span>
+                    <span class="pip"></span>
+                </div>
                 <button id="header-reading-btn" title="Reading">📖</button>
                 <button id="audio-btn" title="Play/Pause">▶</button>
                 <button id="settings-btn" title="Settings">⚙</button>
@@ -30,6 +34,9 @@
                 <button id="agenda-btn">Agenda</button>
             </div>
 
+            <div id="reading-nudge" class="hidden">
+                <span class="nudge-icon">📖</span> You haven't read anything today!
+            </div>
             <div id="nudge-display" class="hidden"></div>
             <div id="status-msg"></div>
 
@@ -100,6 +107,10 @@
                     <input type="checkbox" id="manual-sleep-toggle">
                     <span class="slider"></span>
                 </label>
+            </div>
+            <div class="settings-group toggle-row">
+                <label>Pause Pings (until next session)</label>
+                <button id="pause-btn" style="padding:4px 8px; font-size:11px;">Pause</button>
             </div>
             <div class="button-grid">
                 <button id="save-settings-btn" class="primary">Save</button>

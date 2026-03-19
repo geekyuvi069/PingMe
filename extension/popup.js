@@ -23,6 +23,7 @@ const mainPanel = document.getElementById('main-panel');
 
 // State for reading
 let currentSnippetData = null;
+let isPaused = false;
 
 // Load Settings
 chrome.storage.local.get(['apiUrl', 'interval', 'lastLoggedAt', 'sleepStart', 'sleepEnd', 'isManualSleep'], (result) => {
@@ -31,6 +32,8 @@ chrome.storage.local.get(['apiUrl', 'interval', 'lastLoggedAt', 'sleepStart', 's
     document.getElementById('manual-sleep-toggle').checked = !!result.isManualSleep;
     updateTimerDisplay();
     fetchNudge();
+    fetchReadingStats(); // Check pips and nudge
+    fetchPauseStatus();  // Check pause state
 });
 
 // Update timer every second
@@ -39,10 +42,10 @@ setInterval(updateTimerDisplay, 1000);
 async function updateTimerDisplay() {
     const result = await chrome.storage.local.get(['interval', 'lastLoggedAt', 'isManualSleep']);
 
-    if (result.isManualSleep) {
-        countdownEl.textContent = getMotivationalLine();
+    if (result.isManualSleep || isPaused) {
+        countdownEl.textContent = isPaused ? "PAUSED" : getMotivationalLine();
         countdownEl.classList.add('paused');
-        countdownEl.style.fontSize = '18px'; // Smaller font for longer text
+        countdownEl.style.fontSize = isPaused ? '32px' : '18px';
         return;
     } else {
         countdownEl.classList.remove('paused');
@@ -70,6 +73,7 @@ document.getElementById('add-agenda-btn').onclick = addAgendaItem;
 document.getElementById('settings-btn').onclick = openSettings;
 document.getElementById('close-settings-btn').onclick = closeSettings;
 document.getElementById('save-settings-btn').onclick = saveSettings;
+document.getElementById('pause-btn').onclick = togglePause;
 
 document.getElementById('header-reading-btn').onclick = openReadingPage;
 document.getElementById('close-reading-btn').onclick = closeReadingPage;
@@ -110,6 +114,77 @@ async function fetchNudge() {
         }
     } catch (e) {
         nudgeDisplay.classList.add('hidden');
+    }
+}
+
+async function fetchReadingStats() {
+    try {
+        const resp = await fetch(`${API_URL}/api/reading/stats`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
+        const stats = await resp.json();
+        const pipsCount = stats.snippetsRead || 0;
+
+        // Update pips
+        const pips = document.querySelectorAll('.pip');
+        pips.forEach((p, i) => {
+            if (i < pipsCount) p.classList.add('filled');
+            else p.classList.remove('filled');
+        });
+
+        // Update nudge
+        const readingNudge = document.getElementById('reading-nudge');
+        if (pipsCount < 2) {
+            readingNudge.classList.remove('hidden');
+        } else {
+            readingNudge.classList.add('hidden');
+        }
+    } catch (e) {
+        console.error("Failed to fetch reading stats", e);
+    }
+}
+
+async function fetchPauseStatus() {
+    try {
+        const resp = await fetch(`${API_URL}/api/settings/`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
+        const settings = await resp.json();
+        isPaused = !!settings.isPaused;
+        updatePauseUI();
+    } catch (e) { }
+}
+
+async function togglePause() {
+    const newState = !isPaused;
+    try {
+        const resp = await fetch(`${API_URL}/api/settings/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
+            body: JSON.stringify({ isPaused: newState })
+        });
+        if (resp.ok) {
+            isPaused = newState;
+            chrome.storage.local.set({ isPaused: newState });
+            updatePauseUI();
+            updateTimerDisplay();
+        }
+    } catch (e) {
+        showStatus('Failed to toggle pause');
+    }
+}
+
+function updatePauseUI() {
+    const btn = document.getElementById('pause-btn');
+    if (isPaused) {
+        btn.textContent = 'Resume';
+        btn.classList.add('active');
+    } else {
+        btn.textContent = 'Pause';
+        btn.classList.remove('active');
     }
 }
 
@@ -257,7 +332,18 @@ async function fetchSnippet(bookId = null) {
         currentSnippetData = data;
         snippetText.textContent = data.content;
         document.getElementById('book-title-display').textContent = data.title;
-        document.getElementById('progress-pct').textContent = `${data.pct}%`;
+
+        // Days to finish formula
+        let finishEstimate = '';
+        if (data.daysLeft !== undefined) {
+            finishEstimate = ` · ~${data.daysLeft} days left`;
+        } else if (data.totalSnippets && data.snippetIndex !== undefined) {
+            const remaining = data.totalSnippets - data.snippetIndex;
+            const days = Math.ceil(remaining / 2);
+            finishEstimate = ` · ~${days} days left`;
+        }
+
+        document.getElementById('progress-pct').textContent = `${data.pct}%${finishEstimate}`;
     } catch (e) {
         snippetText.textContent = 'Error loading snippet. Check API.';
     }

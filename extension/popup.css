@@ -46,6 +46,32 @@ button#header-reading-btn {
     font-size: 20px;
     cursor: pointer;
     padding: 0 4px;
+    transition: color 0.2s;
+}
+
+button#settings-btn:hover,
+button#audio-btn:hover,
+button#header-reading-btn:hover {
+    color: var(--accent-color);
+}
+
+#reading-pips {
+    display: flex;
+    gap: 4px;
+}
+
+.pip {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #333;
+    border: 1px solid #444;
+}
+
+.pip.filled {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 4px var(--accent-color);
 }
 
 .input-group {
@@ -325,6 +351,29 @@ input[type="time"] {
     margin-bottom: 12px;
     border-radius: 4px;
     line-height: 1.4;
+}
+
+#reading-nudge {
+    background-color: rgba(251, 191, 36, 0.1);
+    border: 1px solid #fbbf24;
+    color: #fbbf24;
+    padding: 10px;
+    font-size: 11px;
+    margin-bottom: 12px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nudge-icon {
+    font-size: 14px;
+}
+
+#pause-btn.active {
+    background-color: #f87171;
+    border-color: #ef4444;
+    color: #fff;
 }
 
 /* ── Reading Page ── */

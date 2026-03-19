@@ -6,16 +6,39 @@ chrome.runtime.onInstalled.addListener(() => {
             chrome.storage.local.set({ interval: DEFAULT_INTERVAL });
         }
         resetTimer();
+        setupReadingAlarms();
     });
 });
 
 chrome.runtime.onStartup.addListener(() => {
     resetTimer();
+    setupReadingAlarms();
 });
+
+function setupReadingAlarms() {
+    // 9AM and 7PM as per FEATURES.md
+    chrome.alarms.create('readingMorning', { when: getNextOccurrence(9, 0) });
+    chrome.alarms.create('readingEvening', { when: getNextOccurrence(19, 0) });
+}
+
+function getNextOccurrence(hour, minute) {
+    const now = new Date();
+    const target = new Date();
+    target.setHours(hour, minute, 0, 0);
+    if (target <= now) {
+        target.setDate(target.getDate() + 1);
+    }
+    return target.getTime();
+}
 
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'pingTimer') {
         updateBadge();
+    } else if (alarm.name === 'readingMorning' || alarm.name === 'readingEvening') {
+        showReadingNotification();
+        // Reschedule
+        const hour = alarm.name === 'readingMorning' ? 9 : 19;
+        chrome.alarms.create(alarm.name, { when: getNextOccurrence(hour, 0) });
     }
 });
 
@@ -27,8 +50,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function resetTimer() {
-    chrome.storage.local.get(['isManualSleep', 'interval'], (result) => {
-        if (result.isManualSleep) {
+    chrome.storage.local.get(['isManualSleep', 'interval', 'isPaused'], (result) => {
+        if (result.isManualSleep || result.isPaused) {
             chrome.alarms.clear('pingTimer');
             updateBadge();
             return;
@@ -49,10 +72,10 @@ function resetTimer() {
 }
 
 async function updateBadge() {
-    const result = await chrome.storage.local.get(['interval', 'lastLoggedAt', 'sleepStart', 'sleepEnd', 'isManualSleep']);
+    const result = await chrome.storage.local.get(['interval', 'lastLoggedAt', 'sleepStart', 'sleepEnd', 'isManualSleep', 'isPaused']);
 
-    if (result.isManualSleep) {
-        chrome.action.setBadgeText({ text: 'OFF' });
+    if (result.isManualSleep || result.isPaused) {
+        chrome.action.setBadgeText({ text: result.isPaused ? '||' : 'OFF' });
         chrome.action.setBadgeBackgroundColor({ color: '#888888' });
         return;
     }
@@ -99,6 +122,16 @@ function showNotification() {
         iconUrl: 'icons/icon128.png',
         title: 'PingMe',
         message: 'What are you doing right now?',
+        priority: 2
+    });
+}
+
+function showReadingNotification() {
+    chrome.notifications.create('readingNotify', {
+        type: 'basic',
+        iconUrl: 'icons/icon128.png',
+        title: 'PingMe Reading Habit 📖',
+        message: 'Time for your daily snippet! Ready for a 2-minute read?',
         priority: 2
     });
 }
