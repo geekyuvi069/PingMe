@@ -390,22 +390,19 @@ Add GET `/settings` route in main.py.
 web: uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
-### Step 5.2 — Push and deploy
-```bash
-git add .
-git commit -m "pingme complete"
-git push
-
-# Railway dashboard:
-# New Project → Deploy from GitHub → select pingme repo
-# Variables tab → add all .env variables
-# Note your Railway URL after deploy
-```
+### Step 5.2 — Deploy to Fly.io
+1. Install [flyctl](https://fly.io/docs/hands-on/install-flyctl/).
+2. Run `fly launch` (it will detect your `fly.toml`).
+3. Set your secrets:
+   ```bash
+   fly secrets set MONGODB_URI="..." GEMINI_API_KEY="..." # and others
+   ```
+4. Deploy: `fly deploy`.
 
 ### Step 5.3 — Update APP_URL everywhere
-- Railway Variables: `APP_URL=https://your-app.railway.app`
-- Local .env: same
-- Restart popup.py and bot.py
+- Fly.io Dashboard (or `.env`): `APP_URL=https://your-app.fly.dev`
+- Local `.env`: same
+- Update Extension settings with your new `.fly.dev` link.
 
 ### Step 5.4 — Set up cron-job.org (3 jobs)
 

@@ -10,18 +10,16 @@ PingMe is intentionally lightweight. Every tool chosen to keep cost at $0, compl
 
 | Layer | Tool | Why |
 |---|---|---|
-| Backend + API | Python + FastAPI | Same language as bot and popup, async, fast |
+| Backend + API | Python + FastAPI | Same language as bot and extension, async, fast |
 | Frontend Dashboard | Jinja2 + vanilla JS | No build step, no npm, served directly by FastAPI |
 | Database | MongoDB + Motor | Motor is the async MongoDB driver for Python |
-| Desktop Popup | Python + notify-send + zenity | Native Linux GTK dialogs, pre-installed on Ubuntu/Fedora |
-| Telegram Bot | Python + python-telegram-bot | Most mature Telegram library, handles all mobile |
-| Cron Trigger | cron-job.org | Free, hits FastAPI endpoints every 15 min |
-| Email Summary | Resend.com | Free tier (3000 emails/month), simple HTTP call |
-| Hosting | Railway.app | Free tier, supports Python/FastAPI natively, one command deploy |
-| AI Insights (Phase 2) | OpenAI API | Weekly summary only, cents per week |
-| Smart Categorization (Phase 3) | OpenAI Embeddings | Clusters activities automatically |
+| Chrome Extension | JS + HTML/CSS | Modern 4-button UI with Cyber-Noir aesthetic |
+| Reading Habit | PyMuPDF + EbookLib | Extracts snippets from PDF and EPUB for consistent habit-forming |
+| Summary Email | Resend.com | Free tier, simple HTTP call with SVG charts |
+| Hosting | Fly.io | Alpine-based Docker deployment in the `sin` region |
+| AI Intelligence | Gemini 2.0 Flash | Powers categorization, nudges, and weekly insights |
 
-**Total monthly cost: $0 at launch. Cents per week when AI is enabled.**
+**Total monthly cost: $0 at launch. Cents per week when AI is fully utilized.**
 
 ---
 
@@ -114,11 +112,12 @@ RESEND_API_KEY=your_resend_key
 SUMMARY_EMAIL=you@gmail.com
 
 # App
-APP_URL=https://your-app.railway.app
+APP_URL=https://your-app.fly.dev
 CRON_SECRET=make_up_a_random_string_here
 
-# AI (Phase 2 — leave blank at launch)
-OPENAI_API_KEY=
+# AI
+GEMINI_API_KEY=AIza...
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 ---
