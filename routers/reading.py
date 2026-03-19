@@ -106,6 +106,7 @@ async def delete_book(book_id: str, db = Depends(get_db)):
     await db.books.delete_one({"_id": ObjectId(book_id)})
     return {"status": "success"}
 
+@router.get("/snippet/")
 @router.get("/snippet")
 async def get_next_snippet(db = Depends(get_db)):
     """Serve the next snippet from an active book in round-robin fashion."""
@@ -218,6 +219,7 @@ async def mark_read(data: Dict[str, Any] = Body(...), db = Depends(get_db)):
     
     return {"status": "success", "completed": update.get("isCompleted", False)}
 
+@router.get("/stats/")
 @router.get("/stats")
 async def get_reading_stats(db = Depends(get_db)):
     """Get today's and 7-day average reading stats."""

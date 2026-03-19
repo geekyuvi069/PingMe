@@ -27,7 +27,7 @@ let isPaused = false;
 
 // Load Settings
 chrome.storage.local.get(['apiUrl', 'interval', 'lastLoggedAt', 'sleepStart', 'sleepEnd', 'isManualSleep'], (result) => {
-    API_URL = result.apiUrl || DEFAULT_API_URL;
+    API_URL = (result.apiUrl || DEFAULT_API_URL).replace(/\/+$/, '');
     intervalMins = result.interval || DEFAULT_INTERVAL;
     document.getElementById('manual-sleep-toggle').checked = !!result.isManualSleep;
     updateTimerDisplay();
@@ -487,14 +487,15 @@ function saveSettings() {
     const isManualSleep = document.getElementById('manual-sleep-toggle').checked;
 
     if (newUrl && newInterval) {
+        const sanitizedUrl = newUrl.replace(/\/+$/, '');
         chrome.storage.local.set({
-            apiUrl: newUrl,
+            apiUrl: sanitizedUrl,
             interval: newInterval,
             sleepStart: newSleepStart,
             sleepEnd: newSleepEnd,
             isManualSleep: isManualSleep
         }, () => {
-            API_URL = newUrl;
+            API_URL = sanitizedUrl;
             intervalMins = newInterval;
             chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' });
             closeSettings();

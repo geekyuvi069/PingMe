@@ -18,6 +18,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    # Normalize path: replace // with /
+    path = request.url.path
+    if "//" in path:
+        path = path.replace("//", "/")
+        # We can't easily change the request path in-place for all downstream routers 
+        # but we can log it and advise the user.
+        print(f"WARNING: Double slash detected in path: {request.url.path} -> {path}")
+    
+    print(f"DEBUG: Request {request.method} {request.url.path}")
+    response = await call_next(request)
+    print(f"DEBUG: Response status {response.status_code}")
+    return response
+
 # Mount static and templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
