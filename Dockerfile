@@ -1,11 +1,8 @@
-FROM python:3.12-slim
+FROM python:3.12-alpine
 
 WORKDIR /app
 
-# Install system dependencies if needed (e.g., for PyMuPDF)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache gcc musl-dev libffi-dev
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
