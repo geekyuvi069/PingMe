@@ -71,6 +71,6 @@ PingMe is optimized for **Fly.io**:
 4. Deploy: `fly deploy`.
 
 ---
-
+same same 
 ## 📄 License
 MIT
